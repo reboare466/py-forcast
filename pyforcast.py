@@ -3,9 +3,11 @@
 import json
 import numpy as np
 import tkinter
+import requests as req
 from tkinter import *
 from tkinter import ttk
 from datetime import datetime
+from scipy import optimize
 
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
@@ -58,21 +60,39 @@ with open("IDV60901.95867.json", "r") as read_file:
 
 data = json_raw['observations']['data']
 
+request = req.get("http://www.bom.gov.au/fwo/IDV60901/IDV60901.95867.json")
+
+live_raw = request.json()
+
+live_data = live_raw['observations']['data']
+
+data = live_data
+
 #prepare data
 atl = []
 ftl = []
 for item in data:
-    atl.append(float(item['air_temp']))
-    ftl.append(item['local_date_time_full'])
+    try:
+        atl.append(float(item['air_temp']))
+        ftl.append(item['local_date_time_full'])
+    except:
+        print("Couldn't vectorize data")
 
 ftl_dt = []
 for t in ftl:
     ftl_dt.append(datetime.strptime(t, '%Y%m%d%H%M%S'))
 
+ftl_ts = []
+for t in ftl_dt:
+    ftl_ts.append((datetime.timestamp(t)))
+
+#try fitting
+#
 
 #construct figure
 fig = Figure(figsize=(8, 6), dpi=100)
-fig.add_subplot(111).plot_date(ftl_dt, atl)
+sp = fig.add_subplot(111)
+sp.plot_date(ftl_dt, atl)
 
 canvas = FigureCanvasTkAgg(fig, master=mainframe)
 canvas.draw()

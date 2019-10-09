@@ -13,6 +13,7 @@ from matplotlib.backends.backend_tkagg import (
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
 
+#sets time_str and date_str then schedules callback for self
 def keep_time(*args):
     try:
         time_str.set(datetime.now().strftime('%H:%M:%S'))
@@ -21,9 +22,11 @@ def keep_time(*args):
         print("Couldn't update time")
     root.after(100, keep_time)
 
+#calls destroy function of root
 def exit_program(*args):
     root.destroy()
 
+#captures key events for toolbar
 def on_key_press(event):
     print("you pressed {}".format(event.key))
     key_press_handler(event, canvas, toolbar)
@@ -33,7 +36,7 @@ root = Tk()
 root.title("pyForcast")
 
 #setup main view frame within root
-mainframe = ttk.Frame(root, padding="3 3 12 12", width=400, height=200)
+mainframe = ttk.Frame(root, padding="3 3 3 3", width=400, height=200)
 mainframe.grid(column=0, row=0, sticky=(N, W, E, S))
 root.columnconfigure(0, weight=1)
 root.rowconfigure(0, weight=1)
@@ -55,7 +58,7 @@ with open("IDV60901.95867.json", "r") as read_file:
 
 data = json_raw['observations']['data']
 
-#clean data
+#prepare data
 atl = []
 ftl = []
 for item in data:
@@ -71,21 +74,19 @@ for t in ftl:
 fig = Figure(figsize=(8, 6), dpi=100)
 fig.add_subplot(111).plot_date(ftl_dt, atl)
 
-canvas = FigureCanvasTkAgg(fig, master=mainframe)  # A tk.DrawingArea.
+canvas = FigureCanvasTkAgg(fig, master=mainframe)
 canvas.draw()
-#canvas.get_tk_widget().pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
 canvas.get_tk_widget().grid(column=2, row=2, sticky=W)
 canvas.mpl_connect("key_press_event", on_key_press)
 
-#toolbar = NavigationToolbar2Tk(canvas, mainframe)
-#toolbar.update()
-#canvas.get_tk_widget().pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
-#canvas.get_tk_widget().grid(column=1, row=1, sticky=W)
+#add convenient toolbar
+toolframe = ttk.Frame(root, padding="3 3 3 3")
+toolframe.grid(column=0, row=1, sticky=(N, W, E, S))
+toolbar = NavigationToolbar2Tk(canvas, toolframe)
+toolbar.update()
 
 
-
-
-#adjust window
+#adjust child spacing for visibility
 for child in mainframe.winfo_children(): child.grid_configure(padx=5, pady=5)
 
 #start clock

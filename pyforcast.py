@@ -7,7 +7,8 @@ import requests as req
 from tkinter import *
 from tkinter import ttk
 from datetime import datetime
-from scipy import optimize
+#from scipy import optimize
+from scipy import signal
 
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
@@ -54,18 +55,10 @@ label_time = ttk.Label(mainframe, textvariable=time_str).grid(column=2, row=1, s
 #quit button
 button_quit = ttk.Button(mainframe, text="Quit", command=exit_program).grid(column=3, row=3, sticky=W)
 
-#import data
-with open("IDV60901.95867.json", "r") as read_file:
-    json_raw = json.load(read_file)
-
-data = json_raw['observations']['data']
-
+#fetch data
 request = req.get("http://www.bom.gov.au/fwo/IDV60901/IDV60901.95867.json")
-
 live_raw = request.json()
-
 live_data = live_raw['observations']['data']
-
 data = live_data
 
 #prepare data
@@ -86,6 +79,31 @@ ftl_ts = []
 for t in ftl_dt:
     ftl_ts.append((datetime.timestamp(t)))
 
+#optimize section
+window = 9
+weights = np.repeat(1.0, window)/window
+atl_temp = np.convolve(atl,weights,'valid')
+#atl = atl_temp
+
+#signal section
+atl_smooth = signal.savgol_filter(atl,25,3)
+atl_smooth = signal.savgol_filter(atl,25,3)
+
+
+#z = np.polyfit(ftl_ts[:20], atl[:20],2)
+#int_min = np.where(atl == np.amin(atl[:20]))
+#int_max = np.where(atl == np.amax(atl[:20]))
+#temp = atl[int_min[0]:int_max[0]]
+z = np.polyfit(ftl_ts[:20], atl[:20],2)
+f = np.poly1d(z)
+
+#extrapolate time from most recent observation to +12h
+ftl_ts_ex = np.linspace(ftl_ts[1],ftl_ts[1]+21600,12)
+
+ftl_dt_ex = []
+for t in ftl_ts_ex:
+    ftl_dt_ex.append((datetime.fromtimestamp(t)))
+
 #try fitting
 #
 
@@ -93,6 +111,8 @@ for t in ftl_dt:
 fig = Figure(figsize=(8, 6), dpi=100)
 sp = fig.add_subplot(111)
 sp.plot_date(ftl_dt, atl)
+sp.plot_date(ftl_dt, atl_smooth)
+sp.plot_date(ftl_dt_ex, f(ftl_ts_ex))
 
 canvas = FigureCanvasTkAgg(fig, master=mainframe)
 canvas.draw()
